@@ -7,14 +7,34 @@ def convert_to_24_hour(dates):
     for date in dates:
             # Remove the Unicode narrow no-break space (\u202f) and trailing characters
         clean_date = date.replace('\u202f', '').strip(' -')
+        try:
+                # Try parsing with the 24-hour format
+            datetime.strptime(clean_date, "%d/%m/%Y, %H:%M")
+                # If successful, append without changes
+            converted_dates.append(clean_date)
+            continue
+        except ValueError:
+            pass
             # Parse the date and time
-        parsed_date = datetime.strptime(clean_date, "%d/%m/%y, %I:%M%p")
+        parsed_date = None
+        try:
+            # Try with 4-digit year format
+            parsed_date = datetime.strptime(clean_date, "%d/%m/%Y, %I:%M%p")
+        except ValueError:
+            try:
+                    # Try with 2-digit year format
+                parsed_date = datetime.strptime(clean_date, "%d/%m/%y, %I:%M%p")
+            except ValueError:
+                raise ValueError(f"Date format not recognized: {clean_date}")
+
             # Format it back to 24-hour format
-        converted_dates.append(parsed_date.strftime("%d/%m/%y, %H:%M"))
+        converted_dates.append(parsed_date.strftime("%d/%m/%Y, %H:%M"))
+
+
     return converted_dates
 
 def preprocess(data):
-    pattern = '\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{1,2}\s?[ap]m\s-\s'
+    pattern = r'\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{1,2}\s?[apAP][mM]\s-\s|\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{1,2}\s-\s'
     messages = re.split(pattern, data)[1:]
     dates = re.findall(pattern, data)
 
@@ -22,7 +42,7 @@ def preprocess(data):
     # Convert the list
     dates_24_hour = convert_to_24_hour(dates)
     df = pd.DataFrame({'user_message': messages, 'message_date': dates_24_hour})
-    df['message_date'] = pd.to_datetime(df['message_date'], format='%d/%m/%y, %H:%M')
+    df['message_date'] = pd.to_datetime(df['message_date'], format='%d/%m/%Y, %H:%M')
     df.rename(columns={'message_date': 'date'}, inplace=True)
     users = []
     messages = []
