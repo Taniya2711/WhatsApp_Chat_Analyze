@@ -8,3 +8,4 @@ Counter
 WordCloud
 emoji
 datetime
+seaborn
